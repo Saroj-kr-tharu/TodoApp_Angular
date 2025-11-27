@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { catchError } from 'rxjs';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { HotToastService } from '@ngxpert/hot-toast';
 import { TodoItemCom } from '../../Component/todo-item-com/todo-item-com';
 import { Todo } from '../../Model/todo.type';
 import { SearchPipePipe } from '../../Pipes/search-pipe-pipe';
@@ -8,7 +9,7 @@ import { TodoService } from '../../Service/todo-service';
 
 @Component({
   selector: 'app-todos-component',
-  imports: [TodoItemCom, FormsModule, SearchPipePipe],
+  imports: [TodoItemCom, FormsModule, SearchPipePipe, ReactiveFormsModule, ],
   templateUrl: './todos-component.html',
   styleUrl: './todos-component.css',
 })
@@ -17,38 +18,164 @@ export class TodosComponent implements OnInit {
   todoItem = signal <Array<Todo> >  ([])
   searchTerm = signal('')
   todoservice = inject(TodoService)
+  toast = inject(HotToastService)
+  router = inject(Router)
+
+ showTodoForm = false;
+
+
+  todoForm: FormGroup = new FormGroup({
+        title: new FormControl('', [Validators.required, Validators.minLength(3)]),
+        description: new FormControl(''), 
+        status: new FormControl('', [Validators.required]),
+        priority: new FormControl('', [Validators.required]),
+        due_date: new FormControl('', [Validators.required]),
+        
+      });
 
   ngOnInit(): void {
     this.loadTodos()
   }
 
   loadTodos(){
-     this.todoservice.getAllTodos()
+     this.todoservice.getAllTodosByUser()
     .pipe(
-      catchError( (err) => {
-        throw err;
-      } )
+         this.toast.observe({
+          loading: 'Loading Todos...',
+          
+          success: 'Sucessfully Loaded Todos!',
+          error: 'Loading Todos Failed.',
+        })
     )
     .subscribe({
-      next: (todos) => {
-          this.todoItem.set(todos)
+      next: (response: any) => {
+            console.log(response?.data)
+            this.todoItem.set(response?.data)
+
+            localStorage.setItem('Todos', JSON.stringify(response?.data));
           
+      },
+      error: (error) => {
+        console.log(error?.error)
       }
+
     });
   }
 
 
-   UpdateTodoItem(todoItem: Todo) {
-    this.todoItem.update((todos) => todos.map(todo => {
-      if(todo.id === todoItem.id){
-        return{
-          ...todo, 
-          completed : !todo.completed
-        }
-      }
-      return todo ; 
-    }) )
+  
+toggleTodoForm() {
+  this.showTodoForm = !this.showTodoForm;
+  if (this.showTodoForm) {
+    this.todoForm.reset();
   }
+}
+
+closeTodoForm() {
+  this.showTodoForm = false;
+  this.todoForm.reset();
+}
+
+onSubmit() {
+  if (this.todoForm.valid) {
+    const newTodo = this.todoForm.value;
+    const userData:any = localStorage.getItem("todoAppUser");
+    const stringData:any = JSON.parse(userData);
+    
+    
+    this.todoservice.addTodos({...newTodo, user_id:stringData.id})
+    .pipe(
+        this.toast.observe({
+            loading: 'Adding Todo...',
+            success: 'Sucessfully Added Todos!',
+            error: 'Adding Todos Failed.',
+          })
+    )
+
+    .subscribe({
+      next: (response) => {
+        const currentTodos = this.todoItem();
+      
+        const updatedTodos = [...currentTodos, newTodo]
+        this.todoItem.set(updatedTodos);
+        localStorage.setItem('Todos', JSON.stringify(updatedTodos));
+        
+      },
+      error: (error) => {console.log(error?.error)}
+    })
+
+    console.log('New todo:', newTodo);
+    this.closeTodoForm();
+  }
+}
+
+ handleTodoEdit(todo: Todo) {
+  // Handle edit logic
+  console.log('Todo edited:', todo);
+
+    this.todoservice.editTodos(todo , todo.id)
+  .pipe(
+     this.toast.observe({
+          loading: 'Editing Todo...',
+          
+          success: 'Sucessfully Edited Todos!',
+          error: 'Editing Todos Failed.',
+        })
+  )
+  .subscribe(
+    {
+      next: (response) => {
+        const currentTodos = this.todoItem();
+        const updatedTodos = currentTodos.map( 
+            (item) => {
+              if(item.id === todo.id){
+                return {...todo}
+              }
+              return item
+            }
+          )
+        this.todoItem.set(updatedTodos);
+        localStorage.setItem('Todos', JSON.stringify(updatedTodos));
+
+      },
+      error: (error) => {
+        console.log(error?.error?.message)
+      }
+    }
+  )
+}
+
+
+
+handleTodoDelete(todo: Todo) {
+  
+  console.log('Todo deleted:', todo);
+  this.todoservice.deleteTodos(todo.id)
+  .pipe(
+     this.toast.observe({
+          loading: 'Deleting Todo...',
+          
+          success: 'Sucessfully Delete Todos!',
+          error: 'Deleting Todos Failed.',
+        })
+  )
+  .subscribe(
+    {
+      next: (response) => {
+        const currentTodos = this.todoItem();
+        const updatedTodos = currentTodos.filter(  (item) =>  item.id !==todo.id )
+        this.todoItem.set(updatedTodos);
+        localStorage.setItem('Todos', JSON.stringify(updatedTodos));
+
+      },
+      error: (error) => {
+        console.log(error?.error?.message)
+      }
+    }
+  )
+
+}
+
 
 
 

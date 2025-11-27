@@ -10,10 +10,9 @@ export class CompleteTodoDirective  implements OnChanges{
   constructor( 
     private el: ElementRef, 
     private renderer: Renderer2
-  ) { console.log('completed todo directives ') }
+  ) {  }
 
   ngOnChanges(): void {
-      console.log('the condition of completed => ', this.condition)
       if(this.condition){
         this.renderer.addClass(this.el.nativeElement, 'line-through');
         this.renderer.addClass(this.el.nativeElement, 'text-gray-500')

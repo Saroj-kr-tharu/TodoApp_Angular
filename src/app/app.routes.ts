@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { loginGuard } from './Guards/login-guard';
 
 export const routes: Routes = [
     {
@@ -31,6 +32,7 @@ export const routes: Routes = [
     },
     {
         path:'todos',
+        canActivate: [loginGuard],
         loadComponent: () => {
             return import('./Pages/todos/todos-component').then( (m) => 
             m.TodosComponent  )
