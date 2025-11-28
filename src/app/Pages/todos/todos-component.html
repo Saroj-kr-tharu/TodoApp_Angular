@@ -59,7 +59,7 @@
                                 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Select status</option>
                             <option value="pending">Pending</option>
-                            <option value="in-progress">In Progress</option>
+                            <option value="inProgress">In Progress</option>
                             <option value="completed">Completed</option>
                         </select>
                         @if (todoForm.get('status')?.touched && todoForm.get('status')?.errors?.['required']) {
@@ -111,9 +111,9 @@
         }
 
         <div class="mt-38 w-1/2   ">
-            @for (todo of todoItem() | searchPipe : searchTerm(); track todo.id) {
+            @for (todo of todoItem() | searchPipe : searchTerm(); track $index) {
             <app-todo-item-com [todo]='todo' (todoEdited)="handleTodoEdit($event)"
-                (todoDeleted)="handleTodoDelete($event)" />
+                (todoDeleted)="handleTodoDelete($event)" (editRequested)="handleEditRequest($event)" />
             }
         </div>
 

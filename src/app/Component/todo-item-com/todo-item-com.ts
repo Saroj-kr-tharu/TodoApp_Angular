@@ -13,17 +13,20 @@ export class TodoItemCom {
   todoToggled = output<Todo>() ;
   todoEdited = output<Todo> ();
   todoDeleted = output<Todo>();
+  editRequested = output<Todo>();
 
   showPriorityDropdown = false;
 showStatusDropdown = false;
+
+  onEdit() {
+    this.editRequested.emit(this.todo()); 
+  }
 
   todoClicked(){
     this.todoToggled.emit(this.todo());
   }
 
- onEdit() {
-    this.todoEdited.emit(this.todo());
-  }
+
 
   onDelete() {
     this.todoDeleted.emit(this.todo());
